@@ -1,0 +1,173 @@
+# @package _global_
+defaults:
+  - _self_
+  - data
+  - override /hydra/hydra_logging@_group_: none
+  - override /hydra/job_logging@_group_: none
+
+seed: 1
+mode: Formal
+version: release
+
+project_root: ${hydra:runtime.cwd}
+uid: null
+
+alias: ${model_alias}_${data_alias}
+data_alias: ${oc.select:dataset.name,${data}}
+model_alias: ${model_name}_${hf_name}/${data}/lr${lr}_bsz${eq_batch_size}_${loss_type}
+
+# Paths
+
+dirs:
+  data_storage: ${project_root}/data
+  data_cache: ${project_root}/data_cache
+  hf_storage: ${project_root}/hf_checkpoints/
+  temp: ${project_root}/temp/working_dir/${uid}/
+  output: ${project_root}/output/${model_alias}/${version}/${alias}/
+  hydra: ${dirs.temp}hydra/
+  wandb_cache: ${project_root}/temp/wandb/
+
+# Runtime / logging
+
+offline_mode: false
+use_wandb: true
+wandb:
+  name: ${alias}
+  project: RaftPPI
+  entity: ${oc.env:WANDB_ENTITY,anonymous}
+  tags: [ "${mode}" ]
+  dir: ${dirs.wandb_cache}
+  mode: online
+  id: null
+  step_metric: null
+
+logging:
+  level: info
+  log_wandb_metric_to_stdout: true
+
+hf_access_token: ${oc.env:HF_ACCESS_TOKEN,null}
+pretrained_dir: null
+resume: false
+
+# Training (formal defaults)
+
+max_data_samples: null
+max_length: 1024
+max_steps: ${_max_steps_lookup.${data}}
+save_steps: 2000
+eval_steps: ${_eval_steps_lookup.${data}}
+lr: 1e-4
+
+_max_steps_lookup:
+  gold: 3000
+  dscript: 2000
+  richoux: 1000
+  pan: 500
+  du: 500
+  guo: 200
+  huang: 200
+
+_eval_steps_lookup:
+  gold: 1000
+  dscript: 500
+  richoux: 50
+  pan: 50
+  du: 50
+  guo: 50
+  huang: 50
+
+pd_batch_size: ${_pd_batch_size_lookup.${hf_name}}
+_pd_batch_size_lookup:
+  ESM_8M: 32
+  ESM_35M: 32
+  ESM_150M: 8
+  ESM_650M: 4
+
+grad_acc_steps: 2
+eq_batch_size: ${eval:'${pd_batch_size} * ${grad_acc_steps}'}
+
+eval_bsz: ${_eval_bsz_lookup.${hf_name}}
+_eval_bsz_lookup:
+  ESM_8M: 256
+  ESM_35M: 128
+  ESM_150M: 64
+  ESM_650M: 32
+
+num_workers: 2
+
+# Model / loss
+
+model_name: RAFT
+loss_type: Ranking
+prot_readout: mlp_attn
+attn_rank: 1
+prot_emb_norm: true
+res_emb_norm: true
+
+adv_temp: 4.0
+sigma: 0.5
+use_sorf: true
+rff_dim: 2048
+
+# Retrieval settings
+
+proteome_paths:
+  yeast: data/yeast_swissprot_oneliner.fasta
+  human: data/human_swissprot_oneliner.fasta
+
+num_ranking_eval: 100
+ranking_k_values: [ 10, 50, 100, 500, 1000 ]
+ranking_recall_percentages: [ 1, 3, 5, 10, 20 ]
+
+# Precision / DeepSpeed
+
+mixed_precision: bf16
+
+deepspeed:
+  offload_optimizer_device: none
+  offload_param_device: none
+  zero3_init_flag: true
+  zero_stage: 3
+  train_micro_batch_size_per_gpu: ${pd_batch_size}
+  gradient_accumulation_steps: ${grad_acc_steps}
+
+  fp16:
+    enabled: true
+    initial_scale_power: 32
+
+  bf16:
+    enabled: true
+
+  optimizer:
+    type: AdamW
+    params:
+      lr: ${optimizer.lr}
+      betas: ${optimizer.betas}
+      eps: ${optimizer.eps}
+      weight_decay: ${optimizer.weight_decay}
+
+optimizer:
+  _name_: AdamW
+  lr: ${lr}
+  betas: [ 0.9, 0.95 ]
+  eps: 1e-8
+  weight_decay: 0.01
+
+# ESM model loading related
+hf_name: ESM_8M
+hf_ckpt: ${_hf_ckpt_lookup.${hf_name}}
+
+_hf_ckpt_lookup:
+  ESM_8M: facebook/esm2_t6_8M_UR50D
+  ESM_35M: facebook/esm2_t12_35M_UR50D
+  ESM_150M: facebook/esm2_t30_150M_UR50D
+  ESM_650M: facebook/esm2_t33_650M_UR50D
+
+_unimportant_cfg:
+  fields: [ gpus, wandb, env, uid, file_prefix, train_dataset, eval_datasets, hf_access_token, logging, user_cfg, deepspeed ]
+  prefix: [ "_" ]
+  postfix: [ "_path", "_file", "_dir" ]
+
+hydra:
+  run:
+    dir: ${dirs.hydra}/${now:%Y-%m-%d-%H-%M-%S}/${alias}

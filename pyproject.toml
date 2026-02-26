@@ -1,0 +1,54 @@
+[project]
+name = "raftppi"
+version = "0.1.0"
+description = "RaftPPI"
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+
+dependencies = [
+    # Torch stack
+    "torch==2.5.*",
+    # Build backend required by torch cpp/deepspeed op checks
+    "setuptools",
+    "wheel",
+    # Core scientific stack
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    # Config / modeling / ML tooling
+    "hydra-core",
+    "einops",
+    "transformers",
+    # Needed for memory‑efficient attention on pre‑Ampere GPUs
+    "datasets>=2.20",
+    # Note: All reported results are obtained with DeepSpeed 0.17.2 (ZeRO Stage 3).
+    # The code has not been tested with newer DeepSpeed versions.
+    "deepspeed==0.17.2", # Deepspeed version should be pinned
+    # Logging / utilities
+    "wandb",
+    "rich",
+    "rootutils",
+    "codetiming",
+    "humanfriendly",
+    # GPU monitoring
+    "nvitop",
+    "pynvml",
+    # Vector DB
+    "chromadb==1.0.15"
+]
+
+[tool.uv]
+python-preference = "system"
+index-strategy = "unsafe-best-match"
+
+[tool.uv.sources]
+# Use CUDA 12.4 wheel index for torch
+torch = { index = "pytorch-cu124" }
+xformers = { index = "pytorch-cu124" }
+
+
+# CUDA 12.4 wheels
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true

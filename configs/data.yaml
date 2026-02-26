@@ -1,0 +1,40 @@
+# @package _global_
+data: guo
+data_alias: ${.data}
+dataset: ${_dataset_cfg_lookup.${data}}
+
+_dataset_cfg_lookup:
+  huang:
+    local_path: ${dirs.hf_storage}${.hf_path}/
+    hf_path: andyjzhao/ppi_huang
+    type: dscript
+
+  dscript:
+    local_path: ${dirs.hf_storage}${.hf_path}/
+    hf_path: andyjzhao/ppi_dscript
+    type: dscript
+
+  pan:
+    local_path: ${dirs.hf_storage}${.hf_path}/
+    hf_path: andyjzhao/ppi_pan
+    type: dscript
+
+  richoux:
+    local_path: ${dirs.hf_storage}${.hf_path}/
+    hf_path: andyjzhao/ppi_richoux
+    type: dscript
+
+  gold:
+    local_path: ${dirs.hf_storage}${.hf_path}/
+    hf_path: andyjzhao/ppi_gold
+    type: dscript
+
+  du:
+    local_path: ${dirs.hf_storage}${.hf_path}/
+    hf_path: andyjzhao/ppi_du
+    type: dscript
+
+  guo:
+    local_path: ${dirs.hf_storage}${.hf_path}/
+    hf_path: andyjzhao/ppi_guo
+    type: dscript
