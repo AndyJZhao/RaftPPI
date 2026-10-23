@@ -101,7 +101,7 @@ model_name: RAFT
 loss_type: Ranking
 prot_readout: mlp_attn
 attn_rank: 1
-prot_emb_norm: true
+prot_emb_norm: false
 res_emb_norm: true
 
 adv_temp: 4.0

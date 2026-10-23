@@ -208,16 +208,13 @@ class RaftModel(nn.Module):
     def get_protein_embedding(self, tokens):
         # Use this for PPI screening over proteome
         res_z, r_weights = self._get_residue_emb_and_weights(tokens)  # (B, L, D), (B, r, L)
-        prot_emb = torch.einsum('brl,bld->brd', r_weights, res_z)  # (B, r, D)
-
-        batch_size = prot_emb.size(0)
-        prot_emb = prot_emb.reshape(batch_size * self.attn_rank, self.hidden_size)
+        batch_size, seq_len, dim = res_z.shape
 
         if self.use_sorf:
             # Gaussian Embedding to approximate RKHS kernel
-            prot_emb = self.sorf_layer(prot_emb)
+            res_z = self.sorf_layer(res_z.reshape(-1, dim)).reshape(batch_size, seq_len, -1)
 
-        prot_emb = prot_emb.view(batch_size, self.attn_rank, -1)
+        prot_emb = torch.einsum('brl,bld->brd', r_weights, res_z)  # (B, r, D)
         prot_emb = prot_emb.reshape(batch_size, -1)
         if self.prot_emb_norm:
             prot_emb = F.normalize(prot_emb, p=2, dim=-1)
